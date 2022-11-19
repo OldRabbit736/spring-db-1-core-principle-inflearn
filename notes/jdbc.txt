@@ -1,5 +1,6 @@
 == JDBC 등장 이유 ==
 jdbc는 "Java Database Connectivity"의 약자로, 자바에서 DB 통신을 위한 인터페이스를 뜻한다.
+(java.sql.Connection, java.sql.Statement, java.sql.ResultSet, java.sql.Driver)
 
 벤더는 jdbc 표준 인터페이스에 맞게 implementation 부분을 만들어서 배포하는데 이것을 JDBC Driver라고 한다. (Oracle JDBC Driver, Postgres JDBC Driver, ...)
 
