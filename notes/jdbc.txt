@@ -1,3 +1,4 @@
+== JDBC 등장 이유 ==
 jdbc는 "Java Database Connectivity"의 약자로, 자바에서 DB 통신을 위한 인터페이스를 뜻한다.
 
 벤더는 jdbc 표준 인터페이스에 맞게 implementation 부분을 만들어서 배포하는데 이것을 JDBC Driver라고 한다. (Oracle JDBC Driver, Postgres JDBC Driver, ...)
@@ -14,3 +15,47 @@ DB 종류가 변경되더라도 애플리케이션에서 변경할 점이 생기
 
 결국 데이터베이스를 변경하면 JDBC 코드는 변경하지 않아도 되지만, SQL은 해당 데이터베이스에 맞도록 변경해야 한다.
 --> JPA(Java Persistence API)를 사용하면 이 문제도 상당 부분 해결할 수 있다.
+
+connectivity 표준화 --> JDBC
+content(SQL) 표준화 --> JPA
+JDBC + JPA == "HEAVEN"?
+
+== JDBC와 최신 데이터 접근 기술 ==
+JDBC를 직접 사용하기는 복잡하다. JDBC를 편리하게 사용하는 기술을 사용하게 된다.
+대표적으로 SQL Mapper와 ORM 기술이 있다.
+(실무에서 JDBC 직접 사용하는 경우는 거의 없으며, 최소한 SQL Mapper는 사용한다.)
+
+* JDBC 직접 사용
+- 애플리케이션 로직이 JDBC에 SQL을 바로 전달한다.
+
+* SQL Mapper
+- 애플리케이션 로직이 SQL Mapper에게 SQL 전달, SQL Mapper가 JDBC에게 SQL 전달
+- 장점: JDBC를 편리하게 사용할 수 있도록 도와준다.
+    - SQL 응답 결과를 객체로 편리하게 변환해준다.
+    - JDBC의 반복 코드를 제거해준다.
+- 단점: 개발자가 SQL을 직접 작성해야한다.
+- 대표기술: 스프링 JdbcTemplate, MyBatis
+
+* ORM 기술
+- 애플리케이션 로직이 JPA에 "객체" 전달, JPA 구현체가 JDBC에게 SQL 전달
+- ORM은 객체를 관계형 데이터베이스 테이블과 매핑해주는 기술이다. (Entity 정의하는 부분을 말하는 듯 하다)
+- 개발자는 SQL을 직접 작성하지 않고, ORM 기술이 SQL을 동적으로 만들고 실행해준다.
+- 각각의 데이터베이스마다 적절한 SQL을 만들어주기 때문에 호환성 문제도 해결해 준다.
+- 대표기술: JPA, 하이버네이트, 이클립스링크
+- JPA는 자바 진영의 ORM 표준 인터페이스이고, 구현 기술로 하이버네이트, 이클립스가 있다.
+
+* SQL Mapper vs ORM 기술
+SQL Mapper와 ORM 기술 각각 장단점을 가지고 있다.
+- SQL Mapper
+    - SQL만 직접 작성하면 나머지 작업은 SQL Mapper가 대신 해준다.
+    - 즉, SQL만 작성할 줄 알면 금방 배워서 사용할 수 있다.
+- ORM 기술
+    - SQL 자체를 작성하지 않아도 되어서 개발 생산성이 매우 높다.
+    - 편리한 반면, 쉬운 기술은 아니므로 실무에서 사용하려면 깊이있게 학습해야 한다.
+
+* 중요
+SQL Mapper, ORM 기술 모두 내부에서는 JDBC를 사용한다.
+JDBC를 직접 사용하지는 않더라도 어떻게 동작하는지 기본 원리를 알아두는 게 중요하다.
+그로인해 2개의 기술을 더 깊이 있게 이해할 수 있고,
+무엇보다 문제해결 과정에서 근본적인 부분을 살펴볼 수 있게 되어 문제를 더욱 빠르고 정확하게 짚어낼 수 있게 되기 때문이다.
+JDBC는 자바 개발자라면 꼭 알아두어야 하는 필수 기본 기술이다.
