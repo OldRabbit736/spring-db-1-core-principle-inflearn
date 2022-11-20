@@ -1,9 +1,10 @@
 package hello.jdbc.repository;
 
-import hello.jdbc.connection.DBConnectionUtil;
 import hello.jdbc.domain.Member;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.support.JdbcUtils;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,19 +13,23 @@ import java.sql.Statement;
 import java.util.NoSuchElementException;
 
 /**
- * JDBC - DriverManager 사용
+ * JDBC - DataSource 사용, JdbcUtils 사용
  */
 @Slf4j
-public class MemberRepositoryV0 {
+public class MemberRepositoryV1 {
+
+    // 애플리케이션 코드는 DataSource라는 표준, 추상화 인터페이스에 의존 (구현체 변경해도 변경할 코드 없음)
+    private final DataSource dataSource;
+
+    // 구현체를 주입 받아서 사용
+    public MemberRepositoryV1(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     public Member save(Member member) throws SQLException {
         String sql = "insert into member(member_id, money) values (?, ?)";
 
         Connection con = null;
-        /**
-         * PreparedStatement는 Statement의 자식 타입으로 파라미터 바인딩 기능이 추가되었다.
-         * SQL injection 공격을 예방하려면 PreparedStatement를 통한 파라미터 바인딩 방식을 사용해야 한다.
-         */
         PreparedStatement pstmt = null;
 
         try {
@@ -114,35 +119,17 @@ public class MemberRepositoryV0 {
 
     private void close(Connection con, Statement stmt, ResultSet rs) {
         // 리소스 정리는 역순으로
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                // 문제가 생겨도 딱히 할 수 있는 것은 없다. 그냥 로그만 찍는다.
-                log.info("error", e);
-            }
-        }
-
-        if (stmt != null) {
-            try {
-                stmt.close();
-            } catch (SQLException e) {
-                // 문제가 생겨도 딱히 할 수 있는 것은 없다. 그냥 로그만 찍는다.
-                log.info("error", e);
-            }
-        }
-
-        if (con != null) {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                // 문제가 생겨도 딱히 할 수 있는 것은 없다. 그냥 로그만 찍는다.
-                log.info("error", e);
-            }
-        }
+        // 만약 Connection이 ConnectionPool에 의해 생성된 것이라면, close는 리소스 종료 대신 ConnectionPool에 리소스 반환 행위를 한다.
+        // 예를들어, HikariCP가 반환하는 Connection은 HikariProxyConnection인데,
+        // 해당 객체의 close 메서드는 리소스 종료가 아닌 반환 행위를 한다.
+        JdbcUtils.closeResultSet(rs);
+        JdbcUtils.closeStatement(stmt);
+        JdbcUtils.closeConnection(con);
     }
 
-    private Connection getConnection() {
-        return DBConnectionUtil.getConnection();
+    private Connection getConnection() throws SQLException {
+        Connection con = dataSource.getConnection();
+        log.info("get connection={}, class={}", con, con.getClass());
+        return con;
     }
 }
