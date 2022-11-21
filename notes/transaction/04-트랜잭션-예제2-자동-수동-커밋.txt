@@ -1,0 +1,27 @@
+==== 자동 커밋, 수동 커밋 ====
+* 자동 커밋 모드
+자동 커밋 모드란 각 쿼리 실행 직후에 자동으로 커밋이 호출되는 모드이다.
+커밋이나 롤백을 직접 호출하지 않아도 되어 편리하다.
+하지만 쿼리 각각마다 자동으로 커밋이 되어버려 우리가 원하는 트랜잭션 기능을 제대로 사용할 수 없다.
+
+* 자동 커밋 설정
+set autocommit true; //자동 커밋 모드 설정 (postgresql에서는 필요하지 않다)
+insert into member(member_id, money) values ('data1',10000); //자동 커밋
+insert into member(member_id, money) values ('data2',10000); //자동 커밋
+
+** postgresql 관련 **
+- postgresql은 모든 SQL 구문을 트랜잭션 안에서 실행한다. (즉 autocommit = on 과 마찬가지이다.)
+- autocommit을 사용하고 싶지 않다면 "begin - commit"문을 직접사용하면 된다.
+- https://dba.stackexchange.com/questions/303155/how-to-turn-off-autocommit-in-postgresql
+- https://postgresql.kr/docs/current/tutorial-transactions.html
+
+* 수동 커밋 설정
+set autocommit false; //수동 커밋 모드 설정 (postgresql에서는 "begin"을 대신 사용하면 된다.)
+insert into member(member_id, money) values ('data3',10000);
+insert into member(member_id, money) values ('data4',10000);
+commit; //수동 커밋
+
+자동 커밋 모드가 기본으로 설정된 경우가 많기 때문에, 수동 모드로 설정해야 트랜잭션 블럭을 시작할 수 있다.
+수동 커밋 모드에서 트랜잭션의 마지막엔 commit이나 rollback을 호출해야 한다. (호출안하고 타임아웃 시간이 지나면 자동으로 rollback 된다)
+
+커밋 모드 설정은 해당 세션에서 유지된다. 중간에 변경하는 것은 가능하다.
