@@ -1,0 +1,56 @@
+==== 트랜잭션 추상화 ====
+현재 서비스 계층은 JDBC 기술에 의존하여 트랜잭션을 사용하고 있다.
+향후 JPA와 같은 데이터 접근 기술로 변경하려면 서비스 계층의 트랜잭션 코드도 모두 수정되어야 한다는 문제점이 있다.
+
+* 구현 기술에 따른 트랜잭션 사용법 *
+- JDBC: con.setAutoCommit(false)
+- JPA: transaction.begin()
+
+* 트랜잭션 추상화 *
+이 문제를 해결하려면 트랜잭션 기능을 추상화하면 된다.
+아래와 같은 인터페이스를 만들고 서비스 계층에서 인터페이스를 의존하도록 하면 된다.
+
+public interface TxManager {
+    begin();
+    commit();
+    rollback();
+}
+
+그리고 각각의 기술의 해당 인터페이스 구현체를 만들면 된다.
+- JdbcTxManager: JDBC 트랜잭션 기능을 제공하는 구현체
+- JpaTxManager: JPA 트랜잭션 기능을 제공하는 구현체
+
+의존관계
+- Service -> <<interface>>TxManager <-- JdbcTxManager, JpaTxManager
+- 서비스는 특정 트랜잭션이 아닌 인터페이스에 의존한다. 원하는 구현체를 DI를 통해 주입받으면 된다.
+- 클라이언트인 서비스는 인터페이스에 의존하고 DI를 사용한 덕분에 OCP 원칙을 지키게되었다.
+    - 모듈(Service)이 기능 추가(extension)에는 열려 있다 --> TxManager에 대응하는 구현체를 얼마든지 추가할 수 있다. (Type 추가)
+    - 모듈(Service)이 수정에는 닫혀 있다. --> Service는 기능 추가에 따른 수정이 필요치 않다.
+    - 트랜잭션을 사용하는 서비스 코드를 전혀 변경하지 않고(수정에 닫혀있고) 트랜잭션 기술을 마음껏 추가 및 변경할(추가에는 열려있다) 수 있다.
+- OCP에 대한 참고 자료 (https://www.youtube.com/watch?v=dqa-IdafeIE)
+- OCP + DI는 OOP의 장점을 극대화하기 위한 방법이며, 스프링의 정수이다.
+
+
+==== 스프링의 트랜잭션 추상화 ====
+스프링은 이미 이런 고민을 했고 해결책을 마련해 두었다.
+우리는 스프링이 제공하는 트랜잭션 추상화 기술을 사용하면 된다.
+심지어 데이터 접근 기술에 따른 트랜잭션 구현체도 대부분 만둘어 두어서, 우리는 가져다 사용하기만 하면 된다.
+
+Service -> <<interface>>PlatformTransactionManager <-- DataSourceTransactionManager(JDBC), JpaTransactionManager(JPA), HibernateTransactionManager(Hibernate), ...
+
+* PlatformTransactionManager
+- 스프링 트랜잭션 추상화의 핵심이다.
+```
+package org.springframework.transaction;
+
+public interface PlatformTransactionManager extends TransactionManager {
+  TransactionStatus getTransaction(@Nullable TransactionDefinition definition)
+          throws TransactionException;
+  void commit(TransactionStatus status) throws TransactionException;
+  void rollback(TransactionStatus status) throws TransactionException;
+}
+```
+- getTransaction(): 트랜잭션을 시작한다.
+    - 이미 진행중인 트랜잭션이 있는 경우 해당 트랜잭션에 참여한다.
+- commit(): 트랜잭션 커밋
+- rollback(): 트랜잭션 롤백
