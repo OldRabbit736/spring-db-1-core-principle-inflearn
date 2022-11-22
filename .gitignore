@@ -1,3 +1,4 @@
 .idea
 from-author
 .DS_Store
+*.drawio.*
