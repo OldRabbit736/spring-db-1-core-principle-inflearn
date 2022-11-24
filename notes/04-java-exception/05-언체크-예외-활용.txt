@@ -1,0 +1,66 @@
+==== 언체크 예외 활용 ====
+
+* 런타임 예외 사용 - 그림
+[예외 공통 처리 (ControllerAdvice 등)] <--- 전파 -- [Controller] <-- 전파 -- [Service] <-- 전파 -- [Repository - RuntimeSQLException]
+                                                                                <-- 전파 -- [NetworkClient - RuntimeConnectException]
+- SQLException --> RuntimeSQLException 변환
+- ConnectException --> RuntimeConnectException 변환
+- 런타임 예외이기 때문에 서비스, 컨트롤러는 해당 예외를 처리할 수 없다고하더라도 throws 선언문을 포함할 필요가 없다.
+- 컨트롤러와 서비스는 예외에 대해서 모르는 상태이지만 결국 ControllerAdvice 등 공통 처리 로직에게 런타임 예외가 전달되어 처리된다.
+
+* 런타임 예외 사용 변환 코드
+UncheckedAppTest.java
+- 예외 전환
+    - 리포지토리에서 체크 예외가 발생할 때 Runtime 예외로 전환하여 던진다.
+    - 그 덕에 컨트롤러, 서비스에서 더 이상 예외를 의존하지 않아도 된다.
+    - 또한 코드도 깔끔해졌다.
+    - Runtime 예외 전환 시 그 내부에 본 예외가 포함되어 있어 정보가 온전히 보존된다.
+
+* 런타임 예외 - 대부분 복구 불가능한 예외
+- 시스템에서 발생한 예외는 대부분 복구 불가능하다. 런타임 예외를 사용하면 서비스나 컨트롤러가 복구 불가능한 예외에 신경 쓰게 하지 않게 할 수 있다.
+  일관성 있게 공통 로직에서 처리되게 해야 한다.
+
+* 체크 예외 구현 기술 변경시 파급 효과
+- 런타임 예외를 사용하면 해당 런타임 예외의 타입이 변경되더라도(기술 변경 등에 의해) 컨트롤러, 서비스에서 코드를 변경하지 않아도 된다.
+- 공통 처리하는 ControllerAdvice 등의 위치에서만 로직을 변경하면 된다. 즉 변경 파급 범위가 한정된다.
+
+* 정리
+처음 자바를 설계할 당시에는 체크 예외가 더 나은 선택이라 여겨졌다. 그래서 자바가 기본으로 제공하는 기능들에는 체크 예외가 많았다.
+그런데 시간이 지나면서 복구할 수 없는 예외가 너무 많아져버렸다. 특히 더 많은 라이브러리들을 사용하게 되면서 처리해야 하는 예외도
+같이 늘어났다. 체크 예외는 많은 곳에 throws 선언문을 붙이게 만들었다. 그래서 개발자들은 "throws Exception" 이라는 극단적인
+방법도 자주 사용하곤 했다. 물론 좋은 방법은 아니며 사용해서는 안되는 방법이다. 어떤 예외를 잡고 어떤 예외를 던지는지 파악하기 어렵게 만들기 때문이다.
+체크 예외를 사용한다면 잡을 건 잡고 던질 예외는 명시적으로 던진다고 표시해야 한다.
+체크 예외의 이런 문제점 때문에 최근 라이브러리들은 대부분 런타임 예외를 기본으로 제공한다. JPA, 스프링도 런타임 예외를 제공한다.
+런타임 예외도 필요하면 잡을 수 있기 때문에 필요한 경우에 잡아서 처리하고 그렇지 않다면 자연스럽게 던지도록 둔다.
+그리고 예외를 공통으로 처리하는 부분을 만들어서 처리하게 하면 된다.
+
+추가로 런타임 예외는 놓치지 않도록 문서화를 해야 한다.
+
+* 런타임 예외는 문서화
+- 런타임 예외의 문서화는 중요하다.
+- 또는 코드에 "throws 런타임예외"를 남겨서 중요한 예외를 인지할 수 있게 해준다.
+- 예시
+    - JPA EntityManager : 문서에 예외 명시
+    /**
+    * Make an instance managed and persistent.
+    * @param entity  entity instance
+    * @throws EntityExistsException if the entity already exists.
+    * @throws IllegalArgumentException if the instance is not an
+    *         entity
+    * @throws TransactionRequiredException if there is no transaction when
+    *         invoked on a container-managed entity manager of that is of type
+    *         <code>PersistenceContextType.TRANSACTION</code>
+    */
+    public void persist(Object entity);
+
+    - 스프링 JdbcTemplate
+    /**
+    * Issue a single SQL execute, typically a DDL statement.
+    * @param sql static SQL to execute
+    * @throws DataAccessException if there is any problem
+    */
+    void execute(String sql) throws DataAccessException;
+    - 런타임 예외 문서화 + 코드에도 명시 (throws DataAccessException)
+    - 런타임 예외도 throws에 원한다면 선언할 수 있다.
+    - 코드에 명시하면 IDE가 잘 알려준다.
+    - 이 메서드를 실행하는 곳에서는 런타임 예외를 무시할 수 있다.
