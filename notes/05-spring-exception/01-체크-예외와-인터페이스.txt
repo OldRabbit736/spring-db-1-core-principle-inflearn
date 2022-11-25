@@ -67,4 +67,25 @@ MemberService -> <<interface>>MemberRepository <-- JdbcMemberRepository, JpaMemb
 런타임 예외는 이런 부분에서 자유롭다. 인터페이스에 런타임 예외를 따로 선언하지 않아도 된다.
 따라서 인터페이스는 순수하게 유지된다!
 
+* 개선 코드 : MemberRepositoryV4_1
+- 체크 예외를 런타임 예외로 감싸서 던진다.
+- 덕분에 리포지토리 인터페이스에 체크 예외 던지는 부분이 사라졌다.
 
+* 개선 코드 : MemberServiceV4
+- 구체 리포지토리가 아닌 리포지토리 인터페이스에 의존
+- 메소드 SQLException 선언 제거
+- 순수 로직만 남김 (@Transactional, Sl4j 제외)
+
+* 개선 코드 : MemberServiceV4Test
+- MemberRepository 빈 등록하도록 변경 (구현체 변경 가능)
+- SQLException 선언 제거
+
+
+* 정리
+- 체크 예외를 런타임 예외로 변환하면서 인터페이스와 서비스 계층의 순수성을 유지할 수 있게 되었다.
+- 향후 JDBC 외의 다른 기술로 변경하도라도 서비스 계층의 코드를 변경하지 않아도 된다.
+
+* 남은 문제
+- 리포지토리에서 넘어오는 특정한 예외의 경우 복구를 시도할 수도 있다.
+- 지금 방식은 항상 MyDbException 만 넘어오기 때문에 예외를 구분할 수 없는 단점이 있다.
+- 특정 상황에서는 예외를 잡아서 복구하고 싶다면 어떻게 해야 할까?
