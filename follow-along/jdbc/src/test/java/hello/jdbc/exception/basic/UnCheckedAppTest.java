@@ -1,11 +1,13 @@
 package hello.jdbc.exception.basic;
 
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.net.ConnectException;
 import java.sql.SQLException;
 
+@Slf4j
 public class UnCheckedAppTest {
 
     @Test
@@ -13,6 +15,16 @@ public class UnCheckedAppTest {
         Controller controller = new Controller();
         Assertions.assertThatThrownBy(controller::request)
                 .isInstanceOf(RuntimeSQLException.class);
+    }
+
+    @Test
+    void printEx() {
+        Controller controller = new Controller();
+        try {
+            controller.request();
+        } catch (Exception e) {
+            log.info("ex", e);
+        }
     }
 
     static class Controller {
@@ -60,6 +72,10 @@ public class UnCheckedAppTest {
                 runSQL();
             } catch (SQLException e) {
                 throw new RuntimeSQLException(e);
+                //기존 exception을 포함하지 않으면 스텍 트레이스에 "caused by" 정보가 없어진다.
+                //그렇다면 진짜 근본 원인이 어디에서 발생했는지 추적이 불가능하다.
+                //만약 실제 DB에서 발생한 예외라고 한다면, DB에서 어떤 문제가 발생해서 예외가 발생했는지 추적할 수 있는 단서가 없어지는 것이다.
+                //throw new RuntimeException();
             }
         }
 
@@ -77,6 +93,9 @@ public class UnCheckedAppTest {
     static class RuntimeSQLException extends RuntimeException {
         public RuntimeSQLException(Throwable cause) {
             super(cause);
+        }
+
+        public RuntimeSQLException() {
         }
     }
 }
