@@ -1,0 +1,70 @@
+==== 체크 예외와 인터페이스 ====
+MemberServiceV3_3의 accountTransfer 는 지금까지 트랜잭션 AOP를 적용하여 좀 더 순수해졌다.
+하지만 SQLException이라는 JDBC에 의존성은 아직 남아있다. 어떻게 하면 의존성을 제거할 수 있을까?
+서비스가 처리할 수 없는 예외이므로 리포지토리가 SQLException이라는 체크 예외를 런타임 예외로 전환해서 서비스 계층에 던지자.
+이렇게 하면 서비스 계층이 해당 예외를 무시할 수 있기 때문에 서비스 계층을 순수하게 유지할 수 있다.
+
+==== 인터페이스 도입 ====
+MemberRepository 인터페이스 도입해서 구현 기술을 쉽게 변경할 수 있게 해보자.
+
+* 인터페이스 도입 그림
+MemberService -> <<interface>>MemberRepository <-- JdbcMemberRepository, JpaMemberRepository
+
+- 이렇게 인터페이스를 도입하면 MemberService는 MemberRepository 인터페이스에만 의존하면 된다.
+- 구현 기술을 변경하고 싶으면 DI를 사용해서 MemberService 코드의 변경없이 구현 기술을 변경할 수 있다.
+
+    * MemberRepository 인터페이스
+
+    package hello.jdbc.repository;
+    import hello.jdbc.domain.Member;
+
+    public interface MemberRepository {
+        Member save(Member member);
+        Member findById(String memberId);
+        void update(String memberId, int money);
+        void delete(String memberId);
+    }
+
+    - 특정 기술에 종속되지 않는 순수한 인터페이스다.
+    - 이 인터페이스를 기반으로 특정 기술을 사용하는 구현체를 만들면 된다.
+
+* 체크 예외와 인터페이스
+- 기존에는 왜 이런 인터페이스를 만들지 않았을까?
+- 왜냐하면 SQLException이 체크 예외이기 때문이다.
+- 체크 예외는 인터페이스에도 표시되어야 한다.
+
+    * MemberRepository 인터페이스와 체크 예외
+
+    package hello.jdbc.repository;
+    import hello.jdbc.domain.Member;
+    import java.sql.SQLException;
+
+    public interface MemberRepositoryEx {
+        Member save(Member member) throws SQLException;
+        Member findById(String memberId) throws SQLException;
+        void update(String memberId, int money) throws SQLException;
+        void delete(String memberId) throws SQLException;
+    }
+
+    * 구현 클래스
+
+    @Slf4j
+    public class MemberRepositoryV3 implements MemberRepositoryEx {
+        public Member save(Member member) throws SQLException {
+            String sql = "insert into member(member_id, money) values(?, ?)";
+    }}
+
+    - 인터페이스 구현체가 체크 예외를 던지려면 인터페이스 메서드에도 체크 예외가 선언되어 있어야 한다.
+    - 구현 클래스의 메서드에서 선언할 수 있는 예외는 부모 타입에서 던진 예외와 같거나 하위 타입이어야 한다.
+
+* 특정 기술에 종속되는 인터페이스
+체크 예외 때문에 인터페이스 조차 특정 기술에 종속될 수 있다.
+이것은 우리가 원하던 순수한 인터페이스가 아닌 JDBC 기술에 종속된 인터페이스일 뿐이다.
+인터페이스를 만드는 목적은 쉬운 구현체 변경인데, 이미 인터페이스가 특정 구현 기술을 강제하게 되어 버렸다.
+향후 JDBC가 아닌 다른 기술로 변경해야 한다면 인터페이스 자체를 변경해야 한다.
+
+* 런타임 예외와 인터페이스
+런타임 예외는 이런 부분에서 자유롭다. 인터페이스에 런타임 예외를 따로 선언하지 않아도 된다.
+따라서 인터페이스는 순수하게 유지된다!
+
+
